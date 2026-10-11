@@ -34,14 +34,14 @@
         </div>
 
         <div class="header-actions">
-          <button id="btn-copy-code-header" class="btn btn-secondary" aria-label="Copy optimized SVG">
+          <button id="btn-copy-code-header" class="btn btn-secondary" aria-label="Copy optimized SVG" disabled>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
             <span>Copy SVG</span>
           </button>
-          <button id="btn-download-svg" class="btn btn-primary" aria-label="Download optimized SVG file">
+          <button id="btn-download-svg" class="btn btn-primary" aria-label="Download optimized SVG file" disabled>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
@@ -69,6 +69,34 @@
           <div class="sample-buttons" id="sample-buttons-container">
             <!-- Populated dynamically via JS -->
           </div>
+        </div>
+
+        <!-- Active Source Banner (shown when SVG loaded) -->
+        <div class="active-source-bar" id="active-source-bar" style="display: none;">
+          <div class="source-info">
+            <span class="source-tag" id="source-type-tag">Sample Fixture</span>
+            <span class="source-name" id="active-source-name">Precision Badge</span>
+            <span class="source-size" id="active-source-size">1.5 KB</span>
+          </div>
+          <button type="button" id="btn-clear-input" class="btn btn-outline btn-sm" aria-label="Clear active SVG input">
+            Clear Input
+          </button>
+        </div>
+
+        <!-- Error Alert Banner -->
+        <div class="error-banner" id="error-banner" style="display: none;" role="alert">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span id="error-message-text">Error message text</span>
+        </div>
+
+        <!-- Processing Status Banner -->
+        <div class="processing-banner" id="processing-banner" style="display: none;" aria-live="polite">
+          <div class="spinner" aria-hidden="true"></div>
+          <span id="processing-message-text">Evaluating precision candidates...</span>
         </div>
       </section>
 
@@ -156,10 +184,10 @@
           <div class="tier-override-section">
             <span class="tier-override-label">Active Candidate Tier:</span>
             <div class="tier-buttons" id="tier-buttons-group">
-              <button type="button" class="tier-btn" data-tier="3">P3 (3 Decimals)</button>
-              <button type="button" class="tier-btn" data-tier="2">P2 (2 Decimals)</button>
-              <button type="button" class="tier-btn" data-tier="1">P1 (1 Decimal)</button>
-              <button type="button" class="tier-btn" data-tier="0">P0 (Integers)</button>
+              <button type="button" class="tier-btn" data-tier="3" disabled>P3 (3 Dec)</button>
+              <button type="button" class="tier-btn" data-tier="2" disabled>P2 (2 Dec)</button>
+              <button type="button" class="tier-btn" data-tier="1" disabled>P1 (1 Dec)</button>
+              <button type="button" class="tier-btn" data-tier="0" disabled>P0 (Integers)</button>
             </div>
           </div>
         </div>
@@ -168,16 +196,16 @@
         <div class="card recommendation-card" id="recommendation-card">
           <div class="recommendation-header">
             <div class="rec-badge-group">
-              <span class="rec-pill" id="rec-status-pill">Recommended</span>
-              <span class="rec-tier" id="rec-tier-badge">Precision 1</span>
+              <span class="rec-pill" id="rec-status-pill">Awaiting Input</span>
+              <span class="rec-tier" id="rec-tier-badge">—</span>
             </div>
             <div class="rec-savings">
-              <span class="rec-savings-pct" id="rec-savings-pct">-24.5%</span>
+              <span class="rec-savings-pct" id="rec-savings-pct">—</span>
               <span class="rec-savings-sub">size reduction</span>
             </div>
           </div>
           <p class="rec-explanation" id="rec-explanation">
-            Precision 1 satisfies your Balanced budget (≤ 0.5% diff) while delivering significant bandwidth savings.
+            Select a sample fixture above, drop an SVG file, or paste markup to evaluate precision candidate tiers against your tolerance budget.
           </p>
         </div>
       </section>
@@ -210,12 +238,25 @@
 
           <!-- Comparison Viewport Area -->
           <div class="comparison-viewport" id="comparison-viewport">
+            <!-- Empty Viewport State -->
+            <div class="empty-viewport" id="empty-viewport">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="empty-icon" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <h3 class="empty-title">No SVG Loaded for Visual Comparison</h3>
+              <p class="empty-desc">
+                Choose a sample fixture above, drop an SVG file, or paste markup below to render original artwork, examine candidate quantization, and view the pixel diff heatmap.
+              </p>
+            </div>
+
             <!-- Mode 1: Side by Side -->
-            <div class="view-panel view-side-by-side" id="panel-side-by-side">
+            <div class="view-panel view-side-by-side" id="panel-side-by-side" style="display: none;">
               <div class="side-frame">
                 <div class="frame-bar">
                   <span class="frame-tag">Original Artwork</span>
-                  <span class="frame-metric" id="frame-orig-size">-- KB</span>
+                  <span class="frame-metric" id="frame-orig-size">—</span>
                 </div>
                 <div class="svg-container checkerboard" id="orig-svg-container"></div>
               </div>
@@ -223,7 +264,7 @@
               <div class="side-frame">
                 <div class="frame-bar">
                   <span class="frame-tag frame-tag-opt" id="frame-cand-tag">Optimized Candidate</span>
-                  <span class="frame-metric frame-metric-opt" id="frame-cand-size">-- KB</span>
+                  <span class="frame-metric frame-metric-opt" id="frame-cand-size">—</span>
                 </div>
                 <div class="svg-container checkerboard" id="cand-svg-container"></div>
               </div>
@@ -282,20 +323,20 @@
           <div class="card metric-card">
             <div class="metric-card-header">
               <h3 class="metric-card-title">File Size & Savings</h3>
-              <span class="metric-pill pill-savings" id="metric-savings-badge">0% Saved</span>
+              <span class="metric-pill pill-savings" id="metric-savings-badge">—</span>
             </div>
             <div class="metric-body">
               <div class="metric-row">
                 <span class="metric-label">Raw UTF-8 Size</span>
-                <span class="metric-val" id="metric-raw-size">0 B → 0 B</span>
+                <span class="metric-val" id="metric-raw-size">—</span>
               </div>
               <div class="metric-row">
                 <span class="metric-label">Gzip Compressed Size</span>
-                <span class="metric-val" id="metric-gzip-size">0 B → 0 B</span>
+                <span class="metric-val" id="metric-gzip-size">—</span>
               </div>
               <div class="metric-row">
                 <span class="metric-label">Net Bytes Saved</span>
-                <span class="metric-val text-success" id="metric-bytes-saved">0 B</span>
+                <span class="metric-val text-success" id="metric-bytes-saved">—</span>
               </div>
             </div>
           </div>
@@ -304,20 +345,20 @@
           <div class="card metric-card">
             <div class="metric-card-header">
               <h3 class="metric-card-title">Visual Difference</h3>
-              <span class="metric-pill" id="metric-diff-badge">0% Diff</span>
+              <span class="metric-pill" id="metric-diff-badge">—</span>
             </div>
             <div class="metric-body">
               <div class="metric-row">
                 <span class="metric-label">Visual Diff Percentage</span>
-                <span class="metric-val" id="metric-diff-pct">0.00%</span>
+                <span class="metric-val" id="metric-diff-pct">—</span>
               </div>
               <div class="metric-row">
                 <span class="metric-label">Pixel Delta Count</span>
-                <span class="metric-val" id="metric-diff-pixels">0 / 160,000</span>
+                <span class="metric-val" id="metric-diff-pixels">—</span>
               </div>
               <div class="metric-row">
                 <span class="metric-label">Max Channel Delta</span>
-                <span class="metric-val" id="metric-max-delta">0 / 255</span>
+                <span class="metric-val" id="metric-max-delta">—</span>
               </div>
             </div>
           </div>
@@ -326,20 +367,20 @@
           <div class="card metric-card">
             <div class="metric-card-header">
               <h3 class="metric-card-title">Signal Quality</h3>
-              <span class="metric-pill pill-neutral" id="metric-fidelity-badge">High Fidelity</span>
+              <span class="metric-pill pill-neutral" id="metric-fidelity-badge">—</span>
             </div>
             <div class="metric-body">
               <div class="metric-row">
                 <span class="metric-label">Mean Absolute Error (MAE)</span>
-                <span class="metric-val" id="metric-mae">0.00</span>
+                <span class="metric-val" id="metric-mae">—</span>
               </div>
               <div class="metric-row">
                 <span class="metric-label">Peak Signal-to-Noise (PSNR)</span>
-                <span class="metric-val" id="metric-psnr">99.9 dB</span>
+                <span class="metric-val" id="metric-psnr">—</span>
               </div>
               <div class="metric-row">
                 <span class="metric-label">Visual Budget Status</span>
-                <span class="metric-val text-success" id="metric-budget-status">Within Budget</span>
+                <span class="metric-val" id="metric-budget-status">Awaiting Input</span>
               </div>
             </div>
           </div>
@@ -383,14 +424,14 @@
               <span class="code-stats" id="code-stats-text">0 lines • 0 B</span>
             </div>
             <div class="output-actions">
-              <button type="button" id="btn-copy-code" class="btn btn-secondary" aria-label="Copy optimized SVG markup">
+              <button type="button" id="btn-copy-code" class="btn btn-secondary" aria-label="Copy optimized SVG markup" disabled>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                 </svg>
                 <span id="btn-copy-text">Copy Markup</span>
               </button>
-              <button type="button" id="btn-download-code" class="btn btn-primary" aria-label="Download optimized SVG markup as file">
+              <button type="button" id="btn-download-code" class="btn btn-primary" aria-label="Download optimized SVG markup as file" disabled>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                   <polyline points="7 10 12 15 17 10"></polyline>
@@ -402,7 +443,7 @@
           </div>
 
           <div class="code-container">
-            <pre class="code-pre"><code id="code-output" class="code-content"></code></pre>
+            <pre class="code-pre"><code id="code-output" class="code-content">&lt;!-- Awaiting SVG input. Choose a test sample, drop an SVG file, or paste markup above to view optimized output. --&gt;</code></pre>
           </div>
         </div>
       </section>

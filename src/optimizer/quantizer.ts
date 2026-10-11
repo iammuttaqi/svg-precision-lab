@@ -189,17 +189,17 @@ export async function optimizeSvg(
   options: Partial<QuantizeOptions> = {}
 ): Promise<OptimizationResult> {
   const opts: QuantizeOptions = { ...DEFAULT_QUANTIZE_OPTIONS, ...options };
-  const rawOriginalBytes = getByteSize(svgMarkup);
-  const warnings: string[] = [];
-
   if (!svgMarkup || !svgMarkup.trim()) {
-    throw new Error('SVG input is empty.');
+    throw new Error('SVG input is empty or whitespace-only.');
   }
 
   // Basic XML well-formedness validation check
   if (!svgMarkup.includes('<svg')) {
     throw new Error('Input does not contain a valid <svg> root element.');
   }
+
+  const rawOriginalBytes = getByteSize(svgMarkup);
+  const warnings: string[] = [];
 
   let cleaned = svgMarkup;
 
@@ -264,8 +264,11 @@ export async function optimizeSvg(
 
   const byteSize = getByteSize(cleaned);
   const gzipSize = await getGzipSize(cleaned);
-  const savingsBytes = Math.max(0, rawOriginalBytes - byteSize);
-  const savingsPercent = rawOriginalBytes > 0 ? Math.round((savingsBytes / rawOriginalBytes) * 1000) / 10 : 0;
+  const savingsBytes = rawOriginalBytes > byteSize ? rawOriginalBytes - byteSize : 0;
+  const savingsPercent =
+    rawOriginalBytes > 0 && savingsBytes > 0
+      ? Math.round((savingsBytes / rawOriginalBytes) * 1000) / 10
+      : 0;
 
   return {
     precision: opts.precision,

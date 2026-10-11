@@ -4,18 +4,13 @@ import type {
   ToleranceConfig,
   OptimizationResult,
   Recommendation,
+  MultiCandidateAnalysis,
 } from '../types.js';
 import { TOLERANCE_PRESETS } from '../types.js';
-import { optimizeSvg } from './quantizer.js';
+import { optimizeSvg, getByteSize, getGzipSize } from './quantizer.js';
 import { compareSvgs } from './comparator.js';
 
-export interface MultiCandidateAnalysis {
-  originalByteSize: number;
-  originalGzipSize: number;
-  candidates: OptimizationResult[];
-  recommendation: Recommendation;
-  toleranceConfig: ToleranceConfig;
-}
+export { type MultiCandidateAnalysis };
 
 /**
  * Generate candidate tiers (P3, P2, P1, P0) and recommend the smallest file
@@ -26,11 +21,22 @@ export async function analyzeCandidates(
   preset: TolerancePreset = 'balanced',
   customConfig?: Partial<ToleranceConfig>
 ): Promise<MultiCandidateAnalysis> {
+  if (!svgMarkup || !svgMarkup.trim()) {
+    throw new Error('SVG input is empty or whitespace-only.');
+  }
+
+  if (!svgMarkup.includes('<svg')) {
+    throw new Error('Input does not contain a valid <svg> root element.');
+  }
+
   const baseConfig = TOLERANCE_PRESETS[preset] || TOLERANCE_PRESETS.balanced;
   const toleranceConfig: ToleranceConfig = {
     ...baseConfig,
     ...customConfig,
   };
+
+  const originalByteSize = getByteSize(svgMarkup);
+  const originalGzipSize = await getGzipSize(svgMarkup);
 
   const candidateTiers: PrecisionTier[] = [3, 2, 1, 0];
   const candidates: OptimizationResult[] = [];
@@ -66,7 +72,11 @@ export async function analyzeCandidates(
     if (passesPercent && passesMae) {
       selected = cand;
       meetsTolerance = true;
-      reason = `Precision ${cand.precision} satisfies the ${toleranceConfig.name} budget (measured diff: ${diffPct}%, MAE: ${mae}) while yielding ${cand.savingsPercent}% size reduction.`;
+      const savingsText =
+        cand.savingsPercent > 0
+          ? `yielding ${cand.savingsPercent}% size reduction`
+          : 'no further size reduction on this asset';
+      reason = `Precision ${cand.precision} satisfies the ${toleranceConfig.name} budget (measured diff: ${diffPct}%, MAE: ${mae}) while ${savingsText}.`;
       break;
     }
   }
@@ -93,11 +103,9 @@ export async function analyzeCandidates(
     toleranceThreshold: toleranceConfig.maxDiffPercent,
   };
 
-  const originalResult = await optimizeSvg(svgMarkup, { precision: 4, stripComments: false, stripEditorMetadata: false, collapseWhitespace: false });
-
   return {
-    originalByteSize: originalResult.byteSize,
-    originalGzipSize: originalResult.gzipSize,
+    originalByteSize,
+    originalGzipSize,
     candidates,
     recommendation,
     toleranceConfig,

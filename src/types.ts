@@ -78,6 +78,14 @@ export interface Recommendation {
   toleranceThreshold: number;
 }
 
+export interface MultiCandidateAnalysis {
+  originalByteSize: number;
+  originalGzipSize: number;
+  candidates: OptimizationResult[];
+  recommendation: Recommendation;
+  toleranceConfig: ToleranceConfig;
+}
+
 export type ViewMode = 'side-by-side' | 'onion-skin' | 'diff-heatmap';
 
 export interface SvgSample {
@@ -85,4 +93,21 @@ export interface SvgSample {
   name: string;
   description: string;
   markup: string;
+}
+
+export type ProcessingPhase = 'empty' | 'parsing' | 'optimizing' | 'comparing' | 'success' | 'error';
+export type SourceType = 'none' | 'sample' | 'file' | 'pasted';
+
+export interface AppState {
+  phase: ProcessingPhase;
+  sourceType: SourceType;
+  sourceName?: string;
+  originalSvg: string;
+  errorMessage?: string;
+  currentAnalysis: MultiCandidateAnalysis | null;
+  activeTier: PrecisionTier | null;
+  activePreset: TolerancePreset;
+  customTolerancePct: number;
+  activeViewMode: ViewMode;
+  onionOpacity: number;
 }

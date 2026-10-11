@@ -87,7 +87,7 @@ describe('SVG Path Quantizer', () => {
   });
 
   it('throws descriptive error on malformed or empty SVG input', async () => {
-    await expect(optimizeSvg('')).rejects.toThrow('SVG input is empty.');
+    await expect(optimizeSvg('')).rejects.toThrow('SVG input is empty or whitespace-only.');
     await expect(optimizeSvg('<div>Not an SVG</div>')).rejects.toThrow(
       'Input does not contain a valid <svg> root element.'
     );
