@@ -215,6 +215,7 @@ function renderRecommendationCard(): void {
   const statusPill = document.getElementById('rec-status-pill');
   const tierBadge = document.getElementById('rec-tier-badge');
   const savingsPct = document.getElementById('rec-savings-pct');
+  const savingsSub = document.getElementById('rec-savings-sub');
   const explanation = document.getElementById('rec-explanation');
 
   if (state.phase === 'success' && state.currentAnalysis) {
@@ -227,7 +228,23 @@ function renderRecommendationCard(): void {
       tierBadge.textContent = `Precision ${rec.recommendedPrecision}`;
     }
     if (savingsPct) {
-      savingsPct.textContent = rec.toleratedSavingsPercent > 0 ? `-${rec.toleratedSavingsPercent}%` : '0%';
+      const rounded = Math.round(rec.rawReductionPercent * 10) / 10;
+      if (rounded > 0) {
+        savingsPct.textContent = `${rounded.toFixed(1)}%`;
+      } else if (rounded < 0) {
+        savingsPct.textContent = `+${Math.abs(rounded).toFixed(1)}%`;
+      } else {
+        savingsPct.textContent = '0%';
+      }
+    }
+    if (savingsSub) {
+      if (rec.rawBytesSaved > 0) {
+        savingsSub.textContent = 'size reduction';
+      } else if (rec.rawBytesSaved < 0) {
+        savingsSub.textContent = 'size increase';
+      } else {
+        savingsSub.textContent = 'size change';
+      }
     }
     if (explanation) {
       explanation.textContent = rec.reason;
@@ -242,6 +259,7 @@ function renderRecommendationCard(): void {
     }
     if (tierBadge) tierBadge.textContent = '—';
     if (savingsPct) savingsPct.textContent = '—';
+    if (savingsSub) savingsSub.textContent = 'size reduction';
     if (explanation) {
       explanation.textContent = `Could not optimize input: ${state.errorMessage || 'Invalid SVG'}. Please check your markup and try again.`;
     }
@@ -256,6 +274,7 @@ function renderRecommendationCard(): void {
     }
     if (tierBadge) tierBadge.textContent = '—';
     if (savingsPct) savingsPct.textContent = '—';
+    if (savingsSub) savingsSub.textContent = 'size reduction';
     if (explanation) {
       explanation.textContent =
         state.phase === 'optimizing'
@@ -320,7 +339,12 @@ function renderComparisonViews(): void {
     candSizeEl.textContent = `${formatBytes(candidate.byteSize)} (gzip: ${formatBytes(candidate.gzipSize)})`;
   }
   if (candTagEl) {
-    const savingsLabel = candidate.savingsPercent > 0 ? `${candidate.savingsPercent}% smaller` : 'same size';
+    let savingsLabel = 'same size';
+    if (candidate.rawBytesSaved > 0) {
+      savingsLabel = `${candidate.rawReductionPercent.toFixed(1)}% reduction`;
+    } else if (candidate.rawBytesSaved < 0) {
+      savingsLabel = `${Math.abs(candidate.rawReductionPercent).toFixed(1)}% larger`;
+    }
     candTagEl.textContent = `P${state.activeTier} Candidate (${savingsLabel})`;
   }
 
@@ -406,17 +430,40 @@ function renderMetricsCards(): void {
 
   // Active candidate metrics
   if (rawSizeEl) rawSizeEl.textContent = `${formatBytes(state.currentAnalysis.originalByteSize)} → ${formatBytes(candidate.byteSize)}`;
-  if (gzipSizeEl) gzipSizeEl.textContent = `${formatBytes(state.currentAnalysis.originalGzipSize)} → ${formatBytes(candidate.gzipSize)}`;
-  if (bytesSavedEl) {
-    if (candidate.savingsBytes > 0) {
-      bytesSavedEl.textContent = `-${formatBytes(candidate.savingsBytes)} raw (${candidate.savingsPercent}%)`;
-      bytesSavedEl.className = 'metric-val text-success';
+  if (gzipSizeEl) {
+    let gzipDetail = '';
+    if (candidate.gzipBytesSaved > 0) {
+      gzipDetail = ` (${candidate.gzipReductionPercent.toFixed(1)}% reduction)`;
+    } else if (candidate.gzipBytesSaved < 0) {
+      gzipDetail = ` (${Math.abs(candidate.gzipReductionPercent).toFixed(1)}% increase)`;
     } else {
-      bytesSavedEl.textContent = '0 B (0%)';
+      gzipDetail = ' (0% change)';
+    }
+    gzipSizeEl.textContent = `${formatBytes(state.currentAnalysis.originalGzipSize)} → ${formatBytes(candidate.gzipSize)}${gzipDetail}`;
+  }
+
+  if (bytesSavedEl) {
+    if (candidate.rawBytesSaved > 0) {
+      bytesSavedEl.textContent = `${formatBytes(candidate.rawBytesSaved)} saved (${candidate.rawReductionPercent.toFixed(1)}% reduction)`;
+      bytesSavedEl.className = 'metric-val text-success';
+    } else if (candidate.rawBytesSaved < 0) {
+      bytesSavedEl.textContent = `${formatBytes(Math.abs(candidate.rawBytesSaved))} increase (${Math.abs(candidate.rawReductionPercent).toFixed(1)}% larger)`;
+      bytesSavedEl.className = 'metric-val text-warning';
+    } else {
+      bytesSavedEl.textContent = '0 B saved (0% reduction)';
       bytesSavedEl.className = 'metric-val';
     }
   }
-  if (savingsBadge) savingsBadge.textContent = `${candidate.savingsPercent}% Saved`;
+
+  if (savingsBadge) {
+    if (candidate.rawBytesSaved > 0) {
+      savingsBadge.textContent = `${candidate.rawReductionPercent.toFixed(1)}% reduction`;
+    } else if (candidate.rawBytesSaved < 0) {
+      savingsBadge.textContent = `${Math.abs(candidate.rawReductionPercent).toFixed(1)}% increase`;
+    } else {
+      savingsBadge.textContent = '0% reduction';
+    }
+  }
 
   const diffPct = candidate.metrics?.visualDiffPercentage ?? 0;
   const diffPixels = candidate.metrics?.diffPixels ?? 0;

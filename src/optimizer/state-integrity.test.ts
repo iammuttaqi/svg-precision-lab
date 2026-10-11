@@ -93,11 +93,14 @@ describe('M14.1 Initial-State Integrity and Regression Tests', () => {
 
       // Verify mathematical identity: savingsPercent = (savingsBytes / originalByteSize) * 100
       if (cand.savingsBytes > 0) {
-        const expectedPercent = Math.round((cand.savingsBytes / rawBytes) * 1000) / 10;
-        expect(cand.savingsPercent).toBe(expectedPercent);
-        expect(cand.byteSize).toBe(rawBytes - cand.savingsBytes);
+        const expectedPercent = (cand.rawBytesSaved / rawBytes) * 100;
+        expect(cand.rawReductionPercent).toBeCloseTo(expectedPercent, 5);
+        expect(Number(cand.rawReductionPercent.toFixed(1))).toBe(
+          Math.round(expectedPercent * 10) / 10
+        );
+        expect(cand.byteSize).toBe(rawBytes - cand.rawBytesSaved);
       } else {
-        expect(cand.savingsPercent).toBe(0);
+        expect(cand.rawReductionPercent).toBe(0);
       }
     }
 

@@ -58,11 +58,22 @@ export interface VisualDiffMetrics {
   diffDataUrl?: string;
 }
 
+export interface SavingsMetrics {
+  rawBytesSaved: number;
+  rawReductionPercent: number;
+  gzipBytesSaved: number;
+  gzipReductionPercent: number;
+}
+
 export interface OptimizationResult {
   precision: PrecisionTier;
   markup: string;
   byteSize: number;
   gzipSize: number;
+  rawBytesSaved: number;
+  rawReductionPercent: number;
+  gzipBytesSaved: number;
+  gzipReductionPercent: number;
   savingsBytes: number;
   savingsPercent: number;
   warnings: string[];
@@ -74,6 +85,10 @@ export interface Recommendation {
   reason: string;
   meetsTolerance: boolean;
   toleratedSavingsPercent: number;
+  rawBytesSaved: number;
+  rawReductionPercent: number;
+  gzipBytesSaved: number;
+  gzipReductionPercent: number;
   tolerancePreset: TolerancePreset;
   toleranceThreshold: number;
 }

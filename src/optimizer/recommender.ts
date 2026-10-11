@@ -42,7 +42,7 @@ export async function analyzeCandidates(
   const candidates: OptimizationResult[] = [];
 
   for (const precision of candidateTiers) {
-    const result = await optimizeSvg(svgMarkup, { precision });
+    const result = await optimizeSvg(svgMarkup, { precision }, originalGzipSize);
     // Run visual diff comparison if browser canvas is available
     try {
       result.metrics = await compareSvgs(svgMarkup, result.markup);
@@ -55,8 +55,8 @@ export async function analyzeCandidates(
 
   // Evaluate candidates against tolerance budget.
   // We want the smallest file (maximum savings) that satisfies the budget.
-  // Candidates are sorted descending by savingsPercent (which corresponds to lower precision).
-  const sortedBySavings = [...candidates].sort((a, b) => b.savingsPercent - a.savingsPercent);
+  // Candidates are sorted descending by rawReductionPercent (which corresponds to lower precision).
+  const sortedBySavings = [...candidates].sort((a, b) => b.rawReductionPercent - a.rawReductionPercent);
 
   let selected: OptimizationResult | null = null;
   let reason = '';
@@ -72,10 +72,12 @@ export async function analyzeCandidates(
     if (passesPercent && passesMae) {
       selected = cand;
       meetsTolerance = true;
-      const savingsText =
-        cand.savingsPercent > 0
-          ? `yielding ${cand.savingsPercent}% size reduction`
-          : 'no further size reduction on this asset';
+      let savingsText = 'no size reduction on this asset';
+      if (cand.rawBytesSaved > 0) {
+        savingsText = `yielding ${cand.rawReductionPercent.toFixed(1)}% reduction (${cand.rawBytesSaved} B saved)`;
+      } else if (cand.rawBytesSaved < 0) {
+        savingsText = `resulting in ${Math.abs(cand.rawReductionPercent).toFixed(1)}% size increase (${Math.abs(cand.rawBytesSaved)} B larger)`;
+      }
       reason = `Precision ${cand.precision} satisfies the ${toleranceConfig.name} budget (measured diff: ${diffPct}%, MAE: ${mae}) while ${savingsText}.`;
       break;
     }
@@ -98,7 +100,11 @@ export async function analyzeCandidates(
     recommendedPrecision: selected.precision,
     reason,
     meetsTolerance,
-    toleratedSavingsPercent: selected.savingsPercent,
+    toleratedSavingsPercent: selected.rawReductionPercent,
+    rawBytesSaved: selected.rawBytesSaved,
+    rawReductionPercent: selected.rawReductionPercent,
+    gzipBytesSaved: selected.gzipBytesSaved,
+    gzipReductionPercent: selected.gzipReductionPercent,
     tolerancePreset: preset,
     toleranceThreshold: toleranceConfig.maxDiffPercent,
   };

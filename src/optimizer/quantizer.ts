@@ -1,4 +1,4 @@
-import type { PrecisionTier, OptimizationResult } from '../types.js';
+import type { PrecisionTier, OptimizationResult, SavingsMetrics } from '../types.js';
 
 export interface QuantizeOptions {
   precision: PrecisionTier;
@@ -13,6 +13,37 @@ export const DEFAULT_QUANTIZE_OPTIONS: QuantizeOptions = {
   stripEditorMetadata: true,
   collapseWhitespace: true,
 };
+
+/**
+ * Calculate raw and gzip savings metrics deterministically.
+ * - rawBytesSaved = originalRawBytes - optimizedRawBytes
+ * - rawReductionPercent = (rawBytesSaved / originalRawBytes) * 100
+ * - gzipBytesSaved = originalGzipBytes - optimizedGzipBytes
+ * - gzipReductionPercent = (gzipBytesSaved / originalGzipBytes) * 100
+ *
+ * All percentage calculations are guarded against division by zero when the original size is zero.
+ */
+export function calculateSavingsMetrics(
+  originalRawBytes: number,
+  optimizedRawBytes: number,
+  originalGzipBytes: number,
+  optimizedGzipBytes: number
+): SavingsMetrics {
+  const rawBytesSaved = originalRawBytes - optimizedRawBytes;
+  const rawReductionPercent =
+    originalRawBytes > 0 ? (rawBytesSaved / originalRawBytes) * 100 : 0;
+
+  const gzipBytesSaved = originalGzipBytes - optimizedGzipBytes;
+  const gzipReductionPercent =
+    originalGzipBytes > 0 ? (gzipBytesSaved / originalGzipBytes) * 100 : 0;
+
+  return {
+    rawBytesSaved,
+    rawReductionPercent,
+    gzipBytesSaved,
+    gzipReductionPercent,
+  };
+}
 
 /**
  * Measure raw byte size in UTF-8.
@@ -186,7 +217,8 @@ export function quantizeViewBox(viewBox: string, precision: number): string {
  */
 export async function optimizeSvg(
   svgMarkup: string,
-  options: Partial<QuantizeOptions> = {}
+  options: Partial<QuantizeOptions> = {},
+  originalGzipBytes?: number
 ): Promise<OptimizationResult> {
   const opts: QuantizeOptions = { ...DEFAULT_QUANTIZE_OPTIONS, ...options };
   if (!svgMarkup || !svgMarkup.trim()) {
@@ -264,19 +296,22 @@ export async function optimizeSvg(
 
   const byteSize = getByteSize(cleaned);
   const gzipSize = await getGzipSize(cleaned);
-  const savingsBytes = rawOriginalBytes > byteSize ? rawOriginalBytes - byteSize : 0;
-  const savingsPercent =
-    rawOriginalBytes > 0 && savingsBytes > 0
-      ? Math.round((savingsBytes / rawOriginalBytes) * 1000) / 10
-      : 0;
+  const origGzip =
+    originalGzipBytes !== undefined ? originalGzipBytes : await getGzipSize(svgMarkup);
+
+  const savings = calculateSavingsMetrics(rawOriginalBytes, byteSize, origGzip, gzipSize);
 
   return {
     precision: opts.precision,
     markup: cleaned,
     byteSize,
     gzipSize,
-    savingsBytes,
-    savingsPercent,
+    rawBytesSaved: savings.rawBytesSaved,
+    rawReductionPercent: savings.rawReductionPercent,
+    gzipBytesSaved: savings.gzipBytesSaved,
+    gzipReductionPercent: savings.gzipReductionPercent,
+    savingsBytes: savings.rawBytesSaved,
+    savingsPercent: savings.rawReductionPercent,
     warnings,
     metrics: null,
   };
