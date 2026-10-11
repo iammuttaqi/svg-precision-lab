@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SVG Precision Lab — Zero-Install SVG Path Precision Optimizer</title>
+    <meta name="description" content="Optimize SVG path coordinate precision against a user-selected visual-error tolerance budget with side-by-side, onion skin, and diff heatmap comparisons." />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <!-- App Header -->
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="brand">
+          <svg class="brand-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 3v18"></path>
+            <path d="M3 12h18"></path>
+            <circle cx="12" cy="12" r="4" fill="currentColor" fill-opacity="0.2"></circle>
+          </svg>
+          <div class="brand-text">
+            <span class="brand-name">SVG Precision Lab</span>
+            <span class="badge badge-version">v0.1.0</span>
+          </div>
+        </div>
+
+        <div class="header-center">
+          <div class="privacy-badge" title="All processing happens entirely in your local browser memory. No SVG data is ever sent over the network.">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <span>100% Client-Side • Local Browser Memory</span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button id="btn-copy-code-header" class="btn btn-secondary" aria-label="Copy optimized SVG">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy SVG</span>
+          </button>
+          <button id="btn-download-svg" class="btn btn-primary" aria-label="Download optimized SVG file">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Download SVG</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+      <!-- Title & Intro -->
+      <section class="intro-section">
+        <h1 class="panel-title">Zero-Install SVG Path Precision Optimizer</h1>
+        <p class="panel-desc">
+          Achieve smaller SVG files while mathematically controlling and inspecting visual degradation.
+          Select your visual-error budget to automatically recommend the optimal coordinate quantization tier.
+        </p>
+
+        <!-- Sample Corpus Picker -->
+        <div class="sample-picker-bar">
+          <span class="sample-label">Load Test Corpus:</span>
+          <div class="sample-buttons" id="sample-buttons-container">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Input & Dropzone Section -->
+      <section class="input-section">
+        <div class="dropzone" id="svg-dropzone" tabindex="0" role="region" aria-label="SVG File Upload Dropzone">
+          <input type="file" id="file-input" accept=".svg,image/svg+xml" class="visually-hidden" />
+          <div class="dropzone-content">
+            <svg class="dropzone-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p class="dropzone-text">
+              <strong>Drag & drop an SVG file here</strong> or <button type="button" id="btn-browse-file" class="btn-link">browse file</button>
+            </p>
+            <p class="dropzone-subtext">Processes locally in memory. Supports curves, arcs, transforms, gradients, and defs.</p>
+          </div>
+        </div>
+
+        <details class="paste-details" id="paste-details">
+          <summary class="paste-summary">Or paste raw SVG code directly</summary>
+          <div class="paste-container">
+            <textarea id="svg-textarea" class="svg-textarea" placeholder="Paste SVG markup here (e.g. &lt;svg viewBox=&quot;0 0 100 100&quot;&gt;...)"></textarea>
+            <button id="btn-process-pasted" class="btn btn-secondary">Apply Pasted SVG</button>
+          </div>
+        </details>
+      </section>
+
+      <!-- Tolerance Budget & Recommendation Section -->
+      <section class="controls-section">
+        <div class="card tolerance-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h2 class="card-title">Visual-Error Tolerance Budget</h2>
+              <p class="card-subtitle">Set your acceptable perceptual difference threshold to discover the optimal precision level.</p>
+            </div>
+          </div>
+
+          <!-- Tolerance Presets -->
+          <div class="tolerance-presets-grid" id="tolerance-presets" role="radiogroup" aria-label="Tolerance Presets">
+            <button type="button" class="preset-btn" data-preset="strict" role="radio" aria-checked="false">
+              <div class="preset-header">
+                <span class="preset-name">Strict</span>
+                <span class="preset-badge">≤ 0.1% diff</span>
+              </div>
+              <p class="preset-desc">Sub-pixel precision. Best for fine logos, typography, and crisp line icons.</p>
+            </button>
+
+            <button type="button" class="preset-btn active" data-preset="balanced" role="radio" aria-checked="true">
+              <div class="preset-header">
+                <span class="preset-name">Balanced</span>
+                <span class="preset-badge badge-recommended">Default • ≤ 0.5% diff</span>
+              </div>
+              <p class="preset-desc">Imperceptible coordinate rounding at standard display scales. Ideal production target.</p>
+            </button>
+
+            <button type="button" class="preset-btn" data-preset="compact" role="radio" aria-checked="false">
+              <div class="preset-header">
+                <span class="preset-name">Compact</span>
+                <span class="preset-badge">≤ 1.5% diff</span>
+              </div>
+              <p class="preset-desc">Aggressive quantization for maximum file reduction. Best for backgrounds and hero shapes.</p>
+            </button>
+
+            <button type="button" class="preset-btn" data-preset="custom" role="radio" aria-checked="false">
+              <div class="preset-header">
+                <span class="preset-name">Custom</span>
+                <span class="preset-badge" id="custom-badge-val">User Budget</span>
+              </div>
+              <p class="preset-desc">Configure explicit maximum error percent and fine-tune tolerance manually.</p>
+            </button>
+          </div>
+
+          <!-- Custom Threshold Controls (shown when Custom is selected or to tweak) -->
+          <div class="custom-threshold-panel" id="custom-threshold-panel" style="display: none;">
+            <div class="slider-row">
+              <label for="custom-tolerance-slider">Max Visual Difference Budget:</label>
+              <span id="custom-tolerance-label" class="slider-val">1.0%</span>
+            </div>
+            <input type="range" id="custom-tolerance-slider" min="0.05" max="3.00" step="0.05" value="1.00" class="range-slider" />
+          </div>
+
+          <!-- Manual Precision Tier Overrides -->
+          <div class="tier-override-section">
+            <span class="tier-override-label">Active Candidate Tier:</span>
+            <div class="tier-buttons" id="tier-buttons-group">
+              <button type="button" class="tier-btn" data-tier="3">P3 (3 Decimals)</button>
+              <button type="button" class="tier-btn" data-tier="2">P2 (2 Decimals)</button>
+              <button type="button" class="tier-btn" data-tier="1">P1 (1 Decimal)</button>
+              <button type="button" class="tier-btn" data-tier="0">P0 (Integers)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recommendation Banner -->
+        <div class="card recommendation-card" id="recommendation-card">
+          <div class="recommendation-header">
+            <div class="rec-badge-group">
+              <span class="rec-pill" id="rec-status-pill">Recommended</span>
+              <span class="rec-tier" id="rec-tier-badge">Precision 1</span>
+            </div>
+            <div class="rec-savings">
+              <span class="rec-savings-pct" id="rec-savings-pct">-24.5%</span>
+              <span class="rec-savings-sub">size reduction</span>
+            </div>
+          </div>
+          <p class="rec-explanation" id="rec-explanation">
+            Precision 1 satisfies your Balanced budget (≤ 0.5% diff) while delivering significant bandwidth savings.
+          </p>
+        </div>
+      </section>
+
+      <!-- Visual Inspection & Comparison Studio -->
+      <section class="studio-section">
+        <div class="card studio-card">
+          <div class="studio-header">
+            <div class="studio-title-group">
+              <h2 class="card-title">Visual Comparison Studio</h2>
+              <p class="card-subtitle">Examine visual fidelity across multiple inspection modes.</p>
+            </div>
+
+            <!-- View Mode Switcher -->
+            <div class="view-mode-tabs" role="tablist" aria-label="Comparison View Mode">
+              <button type="button" class="view-tab active" data-mode="side-by-side" role="tab" aria-selected="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="8" height="18" rx="1"></rect><rect x="13" y="3" width="8" height="18" rx="1"></rect></svg>
+                <span>Side-by-Side</span>
+              </button>
+              <button type="button" class="view-tab" data-mode="onion-skin" role="tab" aria-selected="false">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="12" r="7"></circle><circle cx="15" cy="12" r="7"></circle></svg>
+                <span>Onion Skin</span>
+              </button>
+              <button type="button" class="view-tab" data-mode="diff-heatmap" role="tab" aria-selected="false">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a7 7 0 0 1 7 7c0 3-3 6-7 13"></path></svg>
+                <span>Diff Heatmap</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Comparison Viewport Area -->
+          <div class="comparison-viewport" id="comparison-viewport">
+            <!-- Mode 1: Side by Side -->
+            <div class="view-panel view-side-by-side" id="panel-side-by-side">
+              <div class="side-frame">
+                <div class="frame-bar">
+                  <span class="frame-tag">Original Artwork</span>
+                  <span class="frame-metric" id="frame-orig-size">-- KB</span>
+                </div>
+                <div class="svg-container checkerboard" id="orig-svg-container"></div>
+              </div>
+
+              <div class="side-frame">
+                <div class="frame-bar">
+                  <span class="frame-tag frame-tag-opt" id="frame-cand-tag">Optimized Candidate</span>
+                  <span class="frame-metric frame-metric-opt" id="frame-cand-size">-- KB</span>
+                </div>
+                <div class="svg-container checkerboard" id="cand-svg-container"></div>
+              </div>
+            </div>
+
+            <!-- Mode 2: Onion Skin -->
+            <div class="view-panel view-onion-skin" id="panel-onion-skin" style="display: none;">
+              <div class="onion-controls">
+                <span class="onion-label">Original (0%)</span>
+                <input type="range" id="onion-slider" min="0" max="100" value="50" class="range-slider" aria-label="Onion skin opacity slider" />
+                <span class="onion-label">Optimized (100%)</span>
+                <span id="onion-value" class="onion-badge">50% Blend</span>
+              </div>
+              <div class="onion-canvas-wrap checkerboard">
+                <div class="onion-layer layer-orig" id="onion-layer-orig"></div>
+                <div class="onion-layer layer-cand" id="onion-layer-cand"></div>
+              </div>
+            </div>
+
+            <!-- Mode 3: Diff Heatmap -->
+            <div class="view-panel view-diff-heatmap" id="panel-diff-heatmap" style="display: none;">
+              <div class="heatmap-info-bar">
+                <div class="heatmap-legend">
+                  <span class="legend-chip legend-red"></span>
+                  <span class="legend-text">Changed Pixels (Coordinate Shift)</span>
+                  <span class="legend-chip legend-gray"></span>
+                  <span class="legend-text">Unaltered Pixels</span>
+                </div>
+                <span class="heatmap-meta" id="heatmap-meta-text">Computed via 400×400 canvas rasterizer</span>
+              </div>
+              <div class="heatmap-canvas-wrap checkerboard">
+                <img id="heatmap-image" alt="Pixel Diff Heatmap visualization" class="heatmap-img" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Rasterization Notice -->
+          <div class="raster-notice">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>
+              Rasterized pixel comparison performed on a standard 400×400px canvas with anti-aliasing thresholding.
+              Pixel differences measure coordinate shift impact; vector rendering remains sharp at all resolutions.
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Metrics & Semantic Integrity Cards -->
+      <section class="metrics-section">
+        <div class="metrics-grid">
+          <!-- Card 1: File Size Reduction -->
+          <div class="card metric-card">
+            <div class="metric-card-header">
+              <h3 class="metric-card-title">File Size & Savings</h3>
+              <span class="metric-pill pill-savings" id="metric-savings-badge">0% Saved</span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-row">
+                <span class="metric-label">Raw UTF-8 Size</span>
+                <span class="metric-val" id="metric-raw-size">0 B → 0 B</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Gzip Compressed Size</span>
+                <span class="metric-val" id="metric-gzip-size">0 B → 0 B</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Net Bytes Saved</span>
+                <span class="metric-val text-success" id="metric-bytes-saved">0 B</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Visual Difference Score -->
+          <div class="card metric-card">
+            <div class="metric-card-header">
+              <h3 class="metric-card-title">Visual Difference</h3>
+              <span class="metric-pill" id="metric-diff-badge">0% Diff</span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-row">
+                <span class="metric-label">Visual Diff Percentage</span>
+                <span class="metric-val" id="metric-diff-pct">0.00%</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Pixel Delta Count</span>
+                <span class="metric-val" id="metric-diff-pixels">0 / 160,000</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Max Channel Delta</span>
+                <span class="metric-val" id="metric-max-delta">0 / 255</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: Signal Quality & Fidelity -->
+          <div class="card metric-card">
+            <div class="metric-card-header">
+              <h3 class="metric-card-title">Signal Quality</h3>
+              <span class="metric-pill pill-neutral" id="metric-fidelity-badge">High Fidelity</span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-row">
+                <span class="metric-label">Mean Absolute Error (MAE)</span>
+                <span class="metric-val" id="metric-mae">0.00</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Peak Signal-to-Noise (PSNR)</span>
+                <span class="metric-val" id="metric-psnr">99.9 dB</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Visual Budget Status</span>
+                <span class="metric-val text-success" id="metric-budget-status">Within Budget</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Semantic Integrity -->
+          <div class="card metric-card">
+            <div class="metric-card-header">
+              <h3 class="metric-card-title">Semantic Integrity</h3>
+              <span class="metric-pill pill-pass">Preserved</span>
+            </div>
+            <div class="metric-body">
+              <ul class="semantic-list">
+                <li class="semantic-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="icon-check" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span><code>viewBox</code> & Aspect Ratio Protected</span>
+                </li>
+                <li class="semantic-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="icon-check" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span><code>defs</code>, Gradients & ClipPaths Intact</span>
+                </li>
+                <li class="semantic-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="icon-check" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Arc Flags & Transform Matrices Preserved</span>
+                </li>
+                <li class="semantic-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="icon-check" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Accessible Text, Title & Aria Preserved</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Code Inspector & Markup Output -->
+      <section class="output-section">
+        <div class="card output-card">
+          <div class="output-header">
+            <div class="output-title-group">
+              <h2 class="card-title">Optimized Markup Output</h2>
+              <span class="code-stats" id="code-stats-text">0 lines • 0 B</span>
+            </div>
+            <div class="output-actions">
+              <button type="button" id="btn-copy-code" class="btn btn-secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span id="btn-copy-text">Copy Markup</span>
+              </button>
+              <button type="button" id="btn-download-code" class="btn btn-primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Download .svg</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="code-container">
+            <pre class="code-pre"><code id="code-output" class="code-content"></code></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-inner">
+        <div class="footer-left">
+          <span class="footer-brand">SVG Precision Lab</span>
+          <span class="footer-dot">•</span>
+          <span>Zero-Install Path Precision Optimizer</span>
+          <span class="footer-dot">•</span>
+          <span>Project Foundry Open Product</span>
+        </div>
+        <div class="footer-right">
+          <span>MIT License</span>
+          <span class="footer-dot">•</span>
+          <span>Local-first • Zero network tracking</span>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
