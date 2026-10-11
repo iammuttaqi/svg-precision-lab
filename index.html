@@ -93,7 +93,7 @@
           <summary class="paste-summary">Or paste raw SVG code directly</summary>
           <div class="paste-container">
             <textarea id="svg-textarea" class="svg-textarea" placeholder="Paste SVG markup here (e.g. &lt;svg viewBox=&quot;0 0 100 100&quot;&gt;...)"></textarea>
-            <button id="btn-process-pasted" class="btn btn-secondary">Apply Pasted SVG</button>
+            <button id="btn-process-pasted" class="btn btn-secondary" aria-label="Apply pasted SVG code">Apply Pasted SVG</button>
           </div>
         </details>
       </section>
@@ -383,14 +383,14 @@
               <span class="code-stats" id="code-stats-text">0 lines • 0 B</span>
             </div>
             <div class="output-actions">
-              <button type="button" id="btn-copy-code" class="btn btn-secondary">
+              <button type="button" id="btn-copy-code" class="btn btn-secondary" aria-label="Copy optimized SVG markup">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                 </svg>
                 <span id="btn-copy-text">Copy Markup</span>
               </button>
-              <button type="button" id="btn-download-code" class="btn btn-primary">
+              <button type="button" id="btn-download-code" class="btn btn-primary" aria-label="Download optimized SVG markup as file">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                   <polyline points="7 10 12 15 17 10"></polyline>
