@@ -199,4 +199,30 @@ describe('M14.1 Initial-State Integrity and Regression Tests', () => {
     expect(analysis.originalByteSize).toBeGreaterThan(0);
     expect(analysis.recommendation.toleratedSavingsPercent).toBeGreaterThanOrEqual(0);
   });
+
+  it('9. Full fixture loading followed by Clear Input resets cleanly to empty state with zero retained metrics or active tiers', async () => {
+    const fixture = SAMPLE_SVGS[0]!;
+    let state = createInitialState();
+
+    // 1. Load fixture
+    state = transitionToLoading(state, 'optimizing', 'sample', fixture.name, fixture.markup);
+    const analysis = await analyzeCandidates(fixture.markup, 'balanced');
+    state = transitionToSuccess(state, analysis, fixture.markup, 'sample', fixture.name);
+
+    expect(state.phase).toBe('success');
+    expect(state.currentAnalysis).not.toBeNull();
+    expect(state.activeTier).toBe(analysis.recommendation.recommendedPrecision);
+    expect(state.originalSvg).toBe(fixture.markup);
+
+    // 2. Clear input
+    state = createInitialState();
+
+    expect(state.phase).toBe('empty');
+    expect(state.currentAnalysis).toBeNull();
+    expect(state.activeTier).toBeNull();
+    expect(state.originalSvg).toBe('');
+    expect(state.sourceType).toBe('none');
+    expect(state.errorMessage).toBeUndefined();
+  });
 });
+
